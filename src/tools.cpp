@@ -16,6 +16,7 @@ VectorXd Tools::CalculateRMSE(const vector<VectorXd> &estimations,
   TODO:
     * Calculate the RMSE here.
   */
+  cout << "RMSE" << '\n';
   VectorXd rmse(4);
   rmse <<  0, 0, 0, 0;
 
@@ -40,6 +41,7 @@ MatrixXd Tools::CalculateJacobian(const VectorXd& x_state) {
   TODO:
     * Calculate a Jacobian here.
   */
+  cout << "calculating Hj" << '\n';
   MatrixXd Hj(3,4);
 	//recover state parameters
 	float px = x_state(0);
@@ -65,5 +67,6 @@ MatrixXd Tools::CalculateJacobian(const VectorXd& x_state) {
     Hj(2,1) = px*(vx*py-vy*px)/pow(temp, 3/2);
     Hj(2,2) = px/sqrt(temp);
     Hj(2,3) = py/sqrt(temp);
+    cout << "Hj done" << '\n';
 	return Hj;
 }
