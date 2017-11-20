@@ -32,11 +32,38 @@ FusionEKF::FusionEKF() {
         0, 0.0009, 0,
         0, 0, 0.09;
 
-  /**
-  TODO:
-    * Finish initializing the FusionEKF.
-    * Set the process and measurement noises
-  */
+  H_laser_ << 1, 0, 0, 0,
+             0, 1, 0, 0;
+
+  Hj_ << 1, 0, 0, 0,
+         0, 1.5, 0, 0,
+         0, 0, 0.5, 0;
+
+  VectorXd x(4);
+  x << 0, 0, 0, 0;
+
+  // initial state covariance matrix P
+  MatrixXd P_in_(4,4);
+  P_in_ << 1, 0, 0, 0,
+             0, 1, 0, 0,
+             0, 0, 10000, 0,
+             0, 0, 0, 10000;
+
+  // initalize transition matrix F
+  MatrixXd F_in_(4, 4);
+  F_in_ << 1, 0, 1, 0,
+             0, 1, 0, 1,
+             0, 0, 1, 0,
+             0, 0, 0, 1;
+
+  MatrixXd Q_in_(4, 4);
+  Q_in_ << 0, 0, 0, 0,
+          0, 0, 0, 0,
+          0, 0, 0, 0,
+          0, 0, 0, 0;
+
+  ekf_.Init(x, P_in_, F_in_, H_laser_, R_laser_, Q_in_);
+
   noise_ax = 9;
   noise_ay = 9;
 
@@ -62,33 +89,17 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
     */
     // first measurement
     cout << "EKF: " << endl;
-    ekf_.x_ = VectorXd(4);
-    ekf_.x_ << 1, 1, 1, 1;
-
-    // initial state covariance matrix P
-    ekf_.P_ = MatrixXd(4,4);
-    ekf_.P_ << 1, 0, 0, 0,
-               0, 1, 0, 0,
-               0, 0, 1000, 0,
-               0, 0, 0, 1000;
-
-    // initalize transition matrix F
-    ekf_.F_ = MatrixXd(4, 4);
-    ekf_.F_ << 1, 0, 1, 0,
-               0, 1, 0, 1,
-               0, 0, 1, 0,
-               0, 0, 0, 1;
 
 
     if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR) {
       /**
       Convert radar from polar to cartesian coordinates and initialize state.
       */
-      float theta = measurement_pack.raw_measurements_[1];
-      float px = measurement_pack.raw_measurements_[0] * cos(theta);
-      float py = measurement_pack.raw_measurements_[0] * sin(theta);
-      float vx = 1;
-      float vy = 1;
+      double theta = measurement_pack.raw_measurements_[1];
+      double px = measurement_pack.raw_measurements_[0] * cos(theta);
+      double py = measurement_pack.raw_measurements_[0] * sin(theta);
+      double vx = measurement_pack.raw_measurements_[2] * cos(theta);
+      double vy = measurement_pack.raw_measurements_[2] * sin(theta);;
       ekf_.x_ << px, py, vx, vy;
 
     }
@@ -96,7 +107,7 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
       /**
       Initialize state.
       */
-    ekf_.x_ << measurement_pack.raw_measurements_[0], measurement_pack.raw_measurements_[0], 1, 1;
+      ekf_.x_ << measurement_pack.raw_measurements_[0], measurement_pack.raw_measurements_[1], 0, 0;
 
     }
 
@@ -124,7 +135,8 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
    float dt_2 = dt * dt;
    float dt_3 = dt_2 * dt;
    float dt_4 = dt_3 * dt;
-   ekf_.F_(0, 2) = ekf_.F_(1, 3) = dt;
+   ekf_.F_(0, 2) = dt;
+   ekf_.F_(1, 3) = dt;
 
    ekf_.Q_ = MatrixXd(4, 4);
    ekf_.Q_ << dt_4/4 * noise_ax, 0, dt_3/2 * noise_ax, 0,

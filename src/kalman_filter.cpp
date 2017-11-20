@@ -6,6 +6,7 @@
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
 
+#define THRESHOLD 0.00001
 
 // Please note that the Eigen library does not initialize
 // VectorXd or MatrixXd objects with zeros upon creation.
@@ -59,6 +60,7 @@ void KalmanFilter::UpdateEKF(const VectorXd &z) {
   */
   Tools tools;
   H_ = tools.CalculateJacobian(x_);
+  std::cout << "HJ: " << H_ << '\n';
 
   VectorXd hx(3);
   float px = x_(0);
@@ -67,15 +69,18 @@ void KalmanFilter::UpdateEKF(const VectorXd &z) {
   float vy = x_(3);
 
   hx(0) = sqrt(px*px + py*py);
+  if(hx(0) < THRESHOLD){
+    hx(0) = THRESHOLD;
+    hx(2) = 0;
+  }
+  else{
+    hx(2) = (px*vx + py*vy)/sqrt(px*px + py*py);
+  }
   hx(1) = atan2(py, px);
-  hx(2) = (px*vx + py*vy)/sqrt(px*px + py*py);
 
   VectorXd y = z - hx;
   cout << "Y value before" << '\n' << y << '\n';
-  while( y(1)<(-1*PI))
-      y(1) = y(1) + 2*PI;
-  while( y(1)>PI)
-      y(1) = y(1) - 2*PI;
+  y(1) = atan2(sin(y(1)), cos(y(1)));
 
   cout << "Y value after" << '\n' << y << '\n';
   MatrixXd S = H_ * P_ * H_.transpose() + R_;
